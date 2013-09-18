@@ -1,0 +1,2 @@
+losetup /dev/loop0 "/home/luthiano/GoFlex Home Personal/ext3_linux_partition.img"
+mount /dev/loop0 /home/0loop0/

@@ -1,0 +1,2 @@
+umount /home/0loop0
+losetup -d /dev/loop0
