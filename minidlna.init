@@ -1,0 +1,158 @@
+#!/bin/sh
+#
+# MediaServer Control File written by Itzchak Rehberg
+# Modified for fedora/redhat by Landon Bradshaw <phazeforward@gmail.com>
+#
+### BEGIN INIT INFO
+# Provides:       minidlna
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Description:    MiniDlna Media server
+### END INIT INFO
+#
+# Comments to support chkconfig on RedHat/Fedora Linux
+# chkconfig: 345 98 29
+# description: MiniDlna Media server
+#
+#==================================================================[ Setup ]===
+
+WORKDIR="/usr/sbin"
+PIDFILE=/var/run/minidlna.pid
+DAEMON=minidlna
+MEDIASRV="${WORKDIR}/${DAEMON}"
+CONFIGFILE="/etc/miniupnpd/minidlna.conf"
+
+#=================================================================[ Script ]===
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# Reset commands if not available
+rc_status() {
+  case "$1" in
+	-v)
+	    true
+	    ;;
+	*)
+	    false
+	    ;;
+    esac
+    echo
+}
+
+cd $WORKDIR
+
+case "$1" in
+  start)
+    if [ -e $PIDFILE ]; then
+      PID=`cat $PIDFILE`
+      echo "MiniDlna seems already be running under PID $PID"
+      echo "(PID file $PIDFILE already exists). Checking for process..."
+      running=`ps --no-headers -o "%c" -p $PID`
+      if ( [ "$DAEMON" == "$running" ] ); then
+        echo "Process IS running. Not started again."
+      else
+        echo "Looks like the daemon crashed: the PID does not match the daemon."
+        echo "Removing flag file..."
+        rm $PIDFILE
+        $0 start
+        exit $?
+      fi
+      exit 0
+    else
+      if [ ! -x "${MEDIASRV}" ]; then
+	  echo "MiniDlna server not found".
+	  rc_status -u
+	  exit $?
+      fi
+      echo -n "Starting $MEDIASRV ... "
+      $MEDIASRV -f "${CONFIGFILE}"
+      RETVAL=$?
+      [ $RETVAL -eq 0 ] && touch /var/lock/subsys/minidlna.init
+      rc_status -v
+    fi
+  ;;
+  stop)
+    if [ ! -e $PIDFILE ]; then
+      echo "PID file $PIDFILE not found, stopping server anyway..."
+      killproc minidlna -TERM
+      RETVAL=$?
+      [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/minidlna.init
+      rc_status -u
+      exit 3
+    else
+      echo -n "Stopping MiniDlna MediaServer ... "
+      PID=`cat $PIDFILE`
+      killproc -p $PIDFILE minidlna -TERM
+      RETVAL=$?
+      [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/minidlna.init
+      rm -f $PIDFILE
+      rc_status -v
+    fi
+  ;;
+  reload)
+    if [ ! -e $PIDFILE ]; then
+      echo "PID file $PIDFILE not found, stopping server anyway..."
+      killall -s TERM minidlna
+      rc_status -u
+      exit 3
+    else
+      echo -n "Reloading MiniDlna server ... "
+      PID=`cat $PIDFILE`
+      kill -s HUP $PID
+      rc_status -v
+    fi
+  ;;
+  restart)
+    $0 stop
+    #Give enough time for minidlna to shutdown
+    sleep 1
+    #Temporary workaround for bug 14155
+    if [ -d /tmp/minidlna/art_cache ] ; then
+	if ! [ -d /tmp/minidlna/art_cache.org ] ; then
+		mkdir /tmp/minidlna/art_cache.org
+	fi
+	mv /tmp/minidlna/art_cache /tmp/minidlna/art_cache.org/art_cache.$$
+    fi
+    if [ -f /tmp/minidlna/files.db ] ; then
+        rm -rf /tmp/minidlna/files.db
+    fi
+    if [ -f /tmp/minidlna/minidlna.log ] ; then
+        rm -rf /tmp/minidlna/minidlna.log
+    fi
+    $0 start
+  ;;
+  status)
+    if [ ! -e $PIDFILE ]; then
+      running="`ps ax --no-headers | grep -e minidlna | grep -v grep | grep -v minidlna.init | cut -d ' ' -f 1`"
+      if [ "$running" == "" ]; then
+        echo "No MiniDlna server is running"
+        exit 2
+      else
+        echo "A MiniDlna server seems to be running (PID: "${running}"), but no PID file exists."
+        echo "Probably no write permission for ${PIDFILE}."
+      fi
+      exit 0
+    fi
+    PID=`cat $PIDFILE`
+    running=`ps --no-headers -o "%c" -p $PID`
+    if ( [ "$DAEMON" == "$running" ] ); then
+      echo "MiniDlna is running."
+      exit 0
+    else
+      echo "Looks like the daemon crashed: the PID does not match the daemon." 
+      exit 2
+    fi
+  ;;
+  *)
+    echo ""
+    echo "MiniDlna server"
+    echo "-------------"
+    echo "Syntax:"
+    echo "  $0 {start|stop|restart|reload|status}"
+    echo ""
+    exit 3
+  ;;
+esac
+
+exit
