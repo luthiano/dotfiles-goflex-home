@@ -1,1 +1,1 @@
-PATH=/opt/bin:/opt/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/usr/sbin:/sbin
+PATH="/opt/bin:/opt/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/usr/sbin:/sbin"
