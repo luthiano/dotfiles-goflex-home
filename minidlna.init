@@ -1,8 +1,5 @@
 #!/bin/sh
 #
-# MediaServer Control File written by Itzchak Rehberg
-# Modified for fedora/redhat by Landon Bradshaw <phazeforward@gmail.com>
-#
 ### BEGIN INIT INFO
 # Provides:       minidlna
 # Default-Start:  3 5
@@ -16,8 +13,8 @@
 #
 #==================================================================[ Setup ]===
 
-WORKDIR="/usr/sbin"
-PIDFILE=/var/run/minidlna.pid
+WORKDIR="/opt/sbin"
+PIDFILE=/var/run/minidlna/minidlna.pid
 DAEMON=minidlna
 MEDIASRV="${WORKDIR}/${DAEMON}"
 CONFIGFILE="/etc/miniupnpd/minidlna.conf"
